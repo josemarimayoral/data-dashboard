@@ -7,6 +7,51 @@ import plotly.express as px
 import plotly.io as pio
 import streamlit as st
 
+# Si usas Streamlit:
+try:
+    import streamlit as st
+    cache = st.cache_data
+except Exception:
+    # fallback si ejecutas sin Streamlit
+    def cache(**_): 
+        def deco(f): return f
+        return deco
+
+import gdown
+
+# IDs de tus archivos en Google Drive
+DRIVE_IDS = {
+    "Mentions.csv": "1zBDOB8DEvOlQPOpa7Pwp_QVMbVRPhdQs",
+    "Replies.csv":  "1nc_6UIIdTLx4hO6sFw-hSoEPr9HigPWM",
+    "Retweets.csv": "1zaBTmtcPcEPgcsWq9BE0mwJ0lgI8Ik_T",
+    "Quotes.csv":   "1pumfORtb5L6bAb5XxTpCDJL5T6H1z8XW",
+    "Posts.csv":    "1ULxDRVz4XjIDErfKpTJtDa9_fqgUWkdH",
+}
+
+@cache(show_spinner=True)
+def ensure_csv_local(name: str) -> Path:
+    """Si el CSV no existe localmente, lo descarga desde Drive."""
+    p = Path(name)
+    if p.exists():
+        return p
+    file_id = DRIVE_IDS[name]
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, str(p), quiet=False)
+    return p
+
+@cache(show_spinner=True)
+def load_csv(name: str) -> pd.DataFrame:
+    p = ensure_csv_local(name)
+    return pd.read_csv(p)
+
+# --- usa estas líneas donde antes cargabas los CSV ---
+mentions  = load_csv("Mentions.csv")
+replies   = load_csv("Replies.csv")
+retweets  = load_csv("Retweets.csv")
+quotes    = load_csv("Quotes.csv")
+posts     = load_csv("Posts.csv")
+# ------------------------------------------------------
+
 # ------------------------------------------------------------------------------
 # CONFIG (tema claro y legible)
 # ------------------------------------------------------------------------------
