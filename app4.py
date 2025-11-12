@@ -45,8 +45,8 @@ def load_csv(name: str) -> pd.DataFrame:
     return pd.read_csv(p)
 
 # --- Arranque ligero en Streamlit Cloud ---
-st.sidebar.markdown("### Datos")
-load_big = st.sidebar.button("🔄 Load full data of Mentions & Replies (may take a while)")
+st.sidebar.markdown("### Data")
+load_big = st.sidebar.button("🔄 Load full data of Mentions & Replies")
 
 def safe_load(name):
     p = ensure_csv_local(name)
@@ -258,8 +258,8 @@ def prev_period_delta(series: pd.Series, start_date, end_date):
 # ------------------------------------------------------------------------------
 # CARGA DE DATOS: local folder OR upload
 # ------------------------------------------------------------------------------
-st.sidebar.header("Data source")
-use_local = st.sidebar.toggle("Load from local folder (same folder as app.py)", value=True)
+# st.sidebar.header("Data source")
+# use_local = st.sidebar.toggle("Load from local folder (same folder as app.py)", value=True)
 
 BASE = Path(__file__).parent  # carpeta donde está app.py
 
