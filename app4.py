@@ -296,41 +296,44 @@ def load_csvs():
 
 dfs_raw = load_csvs()
 
-# Diagnóstico rápido (antes de mapear)
-st.sidebar.subheader("Diagnostics (before date filter)")
-diag = pd.DataFrame({
-    "section": list(dfs_raw.keys()),
-    "rows": [len(v) for v in dfs_raw.values()],
-    "cols": [v.shape[1] if not v.empty else 0 for v in dfs_raw.values()]
-})
-st.sidebar.dataframe(diag, use_container_width=True, height=220)
+DEBUG = False  # cambiar a True si quieres ver diagnósticos
 
-# Mapear/normalizar por sección
-def normalize_all():
-    out = {}
-    for label, df in dfs_raw.items():
-        n = normalize(df, label)
-        # mapeo manual si faltan columnas
-        with st.sidebar.expander(f"Column mapping • {label}", expanded=False):
-            # time
-            if n["__time"].isna().all():
-                dt_col = st.selectbox("Datetime column", options=list(df.columns), index=None, key=f"dt_{label}")
-                if dt_col: n["__time"] = parse_datetime_any(df[dt_col])
-            # user
-            if "__user" in n and (n["__user"].isna().all() if "__user" in n else True):
-                u_col = st.selectbox("User column", options=["<skip>"]+list(df.columns), index=0, key=f"user_{label}")
-                if u_col and u_col != "<skip>": n["__user"] = df[u_col].astype(str)
-            # text
-            if "__text" in n and (n["__text"].isna().all() if "__text" in n else True):
-                x_col = st.selectbox("Text column", options=["<skip>"]+list(df.columns), index=0, key=f"text_{label}")
-                if x_col and x_col != "<skip>": n["__text"] = df[x_col].astype(str)
-            # link
-            if "__link" in n and (n["__link"].isna().all() if "__link" in n else True):
-                l_col = st.selectbox("Link column (optional)", options=["<skip>"]+list(df.columns), index=0, key=f"link_{label}")
-                if l_col and l_col != "<skip>": n["__link"] = df[l_col].astype(str)
-        n = ensure_valid_time(n)
-        out[label] = n
-    return out
+if DEBUG:
+    # Diagnóstico rápido (antes de mapear)
+    st.sidebar.subheader("Diagnostics (before date filter)")
+    diag = pd.DataFrame({
+        "section": list(dfs_raw.keys()),
+        "rows": [len(v) for v in dfs_raw.values()],
+        "cols": [v.shape[1] if not v.empty else 0 for v in dfs_raw.values()]
+    })
+    st.sidebar.dataframe(diag, use_container_width=True, height=220)
+
+# Mapeo manual si faltan columnas
+if DEBUG:
+    with st.sidebar.expander(f"Column mapping • {label}", expanded=False):
+        # time
+        if n["__time"].isna().all():
+            dt_col = st.selectbox("Datetime column", options=list(df.columns), index=None, key=f"dt_{label}")
+            if dt_col:
+                n["__time"] = parse_datetime_any(df[dt_col])
+
+        # user
+        if "__user" in n and (n["__user"].isna().all() if "__user" in n else True):
+            u_col = st.selectbox("User column", options=["<skip>"] + list(df.columns), index=0, key=f"user_{label}")
+            if u_col and u_col != "<skip>":
+                n["__user"] = df[u_col].astype(str)
+
+        # text
+        if "__text" in n and (n["__text"].isna().all() if "__text" in n else True):
+            x_col = st.selectbox("Text column", options=["<skip>"] + list(df.columns), index=0, key=f"text_{label}")
+            if x_col and x_col != "<skip>":
+                n["__text"] = df[x_col].astype(str)
+
+        # link
+        if "__link" in n and (n["__link"].isna().all() if "__link" in n else True):
+            l_col = st.selectbox("Link column (optional)", options=["<skip>"] + list(df.columns), index=0, key=f"link_{label}")
+            if l_col and l_col != "<skip>":
+                n["__link"] = df[l_col].astype(str)
 
 norm = normalize_all()
 
