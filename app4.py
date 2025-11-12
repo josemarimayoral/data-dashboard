@@ -46,7 +46,7 @@ def load_csv(name: str) -> pd.DataFrame:
 
 # --- Arranque ligero en Streamlit Cloud ---
 st.sidebar.markdown("### Data")
-load_big = st.sidebar.button("🔄 Load full data of Mentions & Replies")
+load_big = st.sidebar.button("🔄 Load full data")
 
 def safe_load(name):
     p = ensure_csv_local(name)
