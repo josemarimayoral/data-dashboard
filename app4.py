@@ -46,7 +46,7 @@ def load_csv(name: str) -> pd.DataFrame:
 
 # --- Arranque ligero en Streamlit Cloud ---
 st.sidebar.markdown("### Datos")
-load_big = st.sidebar.button("🔄 Loading complete data (may take a while)")
+load_big = st.sidebar.button("🔄 Load full data of Mentions & Replies (may take a while)")
 
 def safe_load(name):
     p = ensure_csv_local(name)
@@ -64,7 +64,7 @@ if load_big:
 else:
     mentions = None
     replies  = None
-    st.info("App started in light mode. Press the button on the sidebar to load data.")
+    st.info("App started in light mode. To load the complete data including Mentions and Replies, click the button on the sidebar.")
 # --- fin parche ---
 
 # ------------------------------------------------------
@@ -361,7 +361,7 @@ norm = normalize_all()
 
 # Filtro por fechas
 st.sidebar.subheader("Date Range Filter")
-disable_filter = st.sidebar.checkbox("Disable date filter", value=True)
+disable_filter = st.sidebar.checkbox("Ignore date range (uncheck to filter by dates)", value=True)
 default_end = pd.Timestamp.today().normalize()
 default_start = default_end - pd.Timedelta(days=7)
 start_date = st.sidebar.date_input("Start date", value=default_start)
