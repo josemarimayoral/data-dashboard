@@ -255,15 +255,15 @@ def prev_period_delta(series: pd.Series, start_date, end_date):
     if prev == 0: return None
     return ((curr - prev) / prev) * 100
 
-# ------------------------------------------------------------------------------
-# CARGA DE DATOS: local folder OR upload
-# ------------------------------------------------------------------------------
-# st.sidebar.header("Data source")
-# use_local = st.sidebar.toggle("Load from local folder (same folder as app.py)", value=True)
-
-BASE = Path(__file__).parent  # carpeta donde está app.py
+# ----------------------------------------------------------------
+# DATA LOADING: always use Google Drive (no local option)
+# ----------------------------------------------------------------
+BASE = Path(__file__).parent  # folder where app.py is
 
 def load_csvs():
+    # Force cloud mode by default
+    use_local = False
+
     if use_local:
         files = {
             "Posts": BASE / "Posts.csv",
@@ -272,28 +272,20 @@ def load_csvs():
             "Mentions": BASE / "Mentions.csv",
             "Quotes": BASE / "Quotes.csv",
         }
-        dfs = {}
-        for name, path in files.items():
-            if path.exists():
-                dfs[name] = read_csv_smart(path)
-            else:
-                dfs[name] = pd.DataFrame()
-        return dfs
+        dfs = {k: read_csv_smart(v) for k, v in files.items()}
     else:
-        st.sidebar.write("Upload CSV Files")
-        up_posts    = st.sidebar.file_uploader("Posts.csv", type=["csv"], key="up_posts")
-        up_rts      = st.sidebar.file_uploader("Retweets.csv", type=["csv"], key="up_rts")
-        up_replies  = st.sidebar.file_uploader("Replies.csv", type=["csv"], key="up_replies")
-        up_mentions = st.sidebar.file_uploader("Mentions.csv", type=["csv"], key="up_mentions")
-        up_quotes   = st.sidebar.file_uploader("Quotes.csv", type=["csv"], key="up_quotes")
-        return {
-            "Posts": read_csv_smart(up_posts) if up_posts else pd.DataFrame(),
-            "Retweets": read_csv_smart(up_rts) if up_rts else pd.DataFrame(),
-            "Replies": read_csv_smart(up_replies) if up_replies else pd.DataFrame(),
-            "Mentions": read_csv_smart(up_mentions) if up_mentions else pd.DataFrame(),
-            "Quotes": read_csv_smart(up_quotes) if up_quotes else pd.DataFrame(),
+        dfs = {
+            "Posts": read_csv_smart("Posts.csv"),
+            "Retweets": read_csv_smart("Retweets.csv"),
+            "Replies": read_csv_smart("Replies.csv"),
+            "Mentions": read_csv_smart("Mentions.csv"),
+            "Quotes": read_csv_smart("Quotes.csv"),
         }
 
+    return dfs
+
+
+# Load the data (from Drive by default)
 dfs_raw = load_csvs()
 
 # --- DEBUG UI (opcional) ---
