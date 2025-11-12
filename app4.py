@@ -44,12 +44,29 @@ def load_csv(name: str) -> pd.DataFrame:
     p = ensure_csv_local(name)
     return pd.read_csv(p)
 
-# --- usa estas líneas donde antes cargabas los CSV ---
-mentions  = load_csv("Mentions.csv")
-replies   = load_csv("Replies.csv")
-retweets  = load_csv("Retweets.csv")
-quotes    = load_csv("Quotes.csv")
-posts     = load_csv("Posts.csv")
+# --- Arranque ligero en Streamlit Cloud ---
+st.sidebar.markdown("### Datos")
+load_big = st.sidebar.button("🔄 Cargar datos completos (puede tardar)")
+
+def safe_load(name):
+    p = ensure_csv_local(name)
+    return pd.read_csv(p, low_memory=False)
+
+# Carga primero los pequeños (retweets/quotes/posts)
+retweets  = safe_load("Retweets.csv")
+quotes    = safe_load("Quotes.csv")
+posts     = safe_load("Posts.csv")
+
+# Los grandes solo si el usuario los pide
+if load_big:
+    mentions = safe_load("Mentions.csv")
+    replies  = safe_load("Replies.csv")
+else:
+    mentions = None
+    replies  = None
+    st.info("App iniciada en modo ligero. Pulsa el botón de la barra lateral para cargar Mentions y Replies (archivos grandes).")
+# --- fin parche ---
+
 # ------------------------------------------------------
 
 # ------------------------------------------------------------------------------
@@ -438,3 +455,4 @@ with tabs[6]:
         st.info("Add Replies/Mentions to see topics & hashtags.")
 
 st.caption("Tip: activa 'Load from local folder' para leer directamente Posts.csv, Retweets.csv, Replies.csv, Mentions.csv y Quotes.csv desde la misma carpeta del app.py.")
+Start app in light mode; defer big CSVs to a button
