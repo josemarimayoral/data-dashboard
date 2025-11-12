@@ -458,4 +458,5 @@ with tabs[6]:
         st.info("Add Replies/Mentions to see topics & hashtags.")
 
 st.caption("Tip: activa 'Load from local folder' para leer directamente Posts.csv, Retweets.csv, Replies.csv, Mentions.csv y Quotes.csv desde la misma carpeta del app.py.")
-Start app in light mode; defer big CSVs to a button
+# Start app in light mode; defer big CSVs to a button
+
