@@ -64,7 +64,7 @@ if load_big:
 else:
     mentions = None
     replies  = None
-    st.info("App started in light mode. To load the complete data including Mentions and Replies, click the button on the sidebar.")
+    st.info("App started in light mode. To load Mentions and Replies, click the button on the sidebar.")
 # --- fin parche ---
 
 # ------------------------------------------------------
