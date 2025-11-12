@@ -361,7 +361,7 @@ norm = normalize_all()
 
 # Filtro por fechas
 st.sidebar.subheader("Date Range Filter")
-disable_filter = st.sidebar.checkbox("Disable date filter", value=False)
+disable_filter = st.sidebar.checkbox("Disable date filter", value=True)
 default_end = pd.Timestamp.today().normalize()
 default_start = default_end - pd.Timedelta(days=7)
 start_date = st.sidebar.date_input("Start date", value=default_start)
