@@ -548,12 +548,12 @@ def render_world_map(rm, loc_col):
 # =====================================================================
 # SIDEBAR: DATA + DATE FILTER
 # =====================================================================
-st.sidebar.markdown("### Data")
-st.sidebar.caption("CSVs: Posts, Retweets, Replies, Mentions, Quotes\n\n(All data is loaded automatically)")
+#st.sidebar.markdown("### Data")
+#st.sidebar.caption("CSVs: Posts, Retweets, Replies, Mentions, Quotes\n\n(All data is loaded automatically)")
 
 st.sidebar.subheader("Date Range Filter")
 disable_filter = st.sidebar.checkbox(
-    "Ignore date range (uncheck to filter by dates)", value=True
+    "Uncheck to filter by dates since January 2025)", value=True
 )
 
 # 🔒 Límite inferior: 1 Jan 2025
