@@ -577,6 +577,38 @@ st.sidebar.subheader("Date Range Filter")
 disable_filter = st.sidebar.checkbox(
     "Ignore date range (uncheck to filter by dates)", value=True
 )
+
+# 👉 Fecha mínima permitida en el selector: 1 Jan 2025
+min_date = datetime.date(2025, 1, 1)
+
+# Hoy como date “normal”
+today = datetime.date.today()
+
+# Aseguramos que default_end nunca sea anterior a min_date
+default_end = today
+if default_end < min_date:
+    default_end = min_date
+
+# Por defecto últimos 7 días, pero nunca antes de min_date
+default_start = default_end - datetime.timedelta(days=7)
+if default_start < min_date:
+    default_start = min_date
+
+# Selectores con límite inferior en Jan 2025
+start_date = st.sidebar.date_input(
+    "Start date",
+    value=default_start,
+    min_value=min_date,
+    max_value=default_end,
+)
+
+end_date = st.sidebar.date_input(
+    "End date",
+    value=default_end,
+    min_value=min_date,
+    max_value=today,
+)
+
 default_end = pd.Timestamp.today().normalize()
 default_start = default_end - pd.Timedelta(days=7)
 start_date = st.sidebar.date_input("Start date", value=default_start)
