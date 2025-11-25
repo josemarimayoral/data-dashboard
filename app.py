@@ -41,10 +41,24 @@ def ensure_csv_local(name: str) -> Path:
         gdown.download(url, str(p), quiet=False)
     return p
 
-def safe_load(name: str) -> pd.DataFrame:
-    """Lee CSV desde local (o Drive si hace falta)."""
+def safe_load(name: str, min_year=2025) -> pd.DataFrame:
+    """Lee CSV desde local/Drive y filtra por año mínimo para evitar exceso de memoria."""
     p = ensure_csv_local(name)
-    return pd.read_csv(p, low_memory=False)
+    df = pd.read_csv(p, low_memory=False)
+
+    # Intentar detectar columna de fecha
+    date_candidates = [c for c in df.columns 
+                       if re.search(r"(date|time|created|timestamp)", c, re.I)]
+
+    if date_candidates:
+        col = date_candidates[0]
+        dt = parse_datetime_any(df[col])
+        df = df.assign(_temp_dt=dt)
+        df = df[df["_temp_dt"].dt.year >= min_year]
+        df = df.drop(columns=["_temp_dt"])
+
+    return df
+
 
 # =====================================================================
 # ESTILO GENERAL (CLARO)
