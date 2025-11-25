@@ -553,7 +553,7 @@ def render_world_map(rm, loc_col):
 
 st.sidebar.subheader("Date Range Filter")
 disable_filter = st.sidebar.checkbox(
-    "Uncheck to filter by dates since January 2025)", value=True
+    "Uncheck to filter by dates since January 2025", value=True
 )
 
 # 🔒 Límite inferior: 1 Jan 2025
