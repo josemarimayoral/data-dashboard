@@ -1,4 +1,4 @@
-# app21.py
+# app22.py
 import re, string, html
 from pathlib import Path
 import pandas as pd
@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.io as pio
 import streamlit as st
 import gdown
-import datetime  # para el año dinámico en el footer
+import datetime  # para el año dinámico en el footer y los filtros de fecha
 
 # =====================================================================
 # CACHE / CONFIG STREAMLIT
@@ -14,17 +14,18 @@ import datetime  # para el año dinámico en el footer
 try:
     cache = st.cache_data
 except Exception:
+        # Fallback si ejecutas sin Streamlit (por ejemplo en consola)
     def cache(**_):
         def deco(f): return f
         return deco
 
 # =====================================================================
-# GOOGLE DRIVE (OPCIONAL)
+# GOOGLE DRIVE (CSV GRANDES)
 # =====================================================================
 DRIVE_IDS = {
     "Mentions.csv": "1zBDOB8DEvOlQPOpa7Pwp_QVMbVRPhdQs",
     "Replies.csv":  "1nc_6UIIdTLx4hO6sFw-hSoEPr9HigPWM",
-    "Retweets.csv": "1zaBTmtcPcEPgcsWq9BE0mwJ0lgI8Ik_T",  # ojo, aquí va el 9
+    "Retweets.csv": "1zaBTmtcPcEPgcsWq9BE0mwJ0lgI8Ik_T",
     "Quotes.csv":   "1pumfORtb5L6bAb5XxTpCDJL5T6H1z8XW",
     "Posts.csv":    "1ULxDRVz4XjIDErfKpTJtDa9_fqgUWkdH",
 }
@@ -41,24 +42,10 @@ def ensure_csv_local(name: str) -> Path:
         gdown.download(url, str(p), quiet=False)
     return p
 
-def safe_load(name: str, min_year=2025) -> pd.DataFrame:
-    """Lee CSV desde local/Drive y filtra por año mínimo para evitar exceso de memoria."""
+def safe_load(name: str) -> pd.DataFrame:
+    """Lee CSV desde local (o Drive si hace falta)."""
     p = ensure_csv_local(name)
-    df = pd.read_csv(p, low_memory=False)
-
-    # Intentar detectar columna de fecha
-    date_candidates = [c for c in df.columns 
-                       if re.search(r"(date|time|created|timestamp)", c, re.I)]
-
-    if date_candidates:
-        col = date_candidates[0]
-        dt = parse_datetime_any(df[col])
-        df = df.assign(_temp_dt=dt)
-        df = df[df["_temp_dt"].dt.year >= min_year]
-        df = df.drop(columns=["_temp_dt"])
-
-    return df
-
+    return pd.read_csv(p, low_memory=False)
 
 # =====================================================================
 # ESTILO GENERAL (CLARO)
@@ -298,7 +285,9 @@ def sanitize_tweet_text(text: str) -> str:
     """Limpia HTML suelto tipo <div> que venga en el CSV (normal y escapado)."""
     if not isinstance(text, str):
         return ""
+    # Tags <div> reales
     text = re.sub(r"</?div[^>]*>", " ", text, flags=re.IGNORECASE)
+    # Versiones escapadas &lt;div&gt; / &lt;/div&gt;
     text = re.sub(r"&lt;/?div[^&]*&gt;", " ", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+", " ", text).strip()
     return text
@@ -463,61 +452,51 @@ def top_tweets(df, n=5):
     return d[["time","user","text","link","engagement"]].head(n)
 
 def render_top_tweets(df, title, n=5):
-    """Render cards para top tweets evitando mostrar HTML como texto."""
     st.markdown(f"### {title}")
     tt = top_tweets(df, n=n)
     if tt.empty:
         st.info("Not enough engagement data to rank tweets.")
         return
-
     for _, row in tt.iterrows():
         time_str = row["time"].strftime("%Y-%m-%d %H:%M:%S") if pd.notna(row["time"]) else ""
         user = row["user"] or ""
         text = row["text"] or ""
-
-        # Texto limpio y escapado
-        text_html = html.escape(text).replace("\n", "<br>")
-
-        # Link válido
-        raw_link = row["link"] if isinstance(row["link"], str) else ""
-        link = raw_link if isinstance(raw_link, str) and raw_link.startswith("http") else ""
-
-        if link:
-            link_block = (
-f"""<div style="font-size:0.85rem; margin-top:4px;">
-  <a href="{html.escape(link)}" target="_blank"
-     style="text-decoration:none; font-weight:500;">
-    🔗 View tweet
-  </a>
-</div>"""
-            )
-        else:
-            link_block = ""
-
+        text_html = html.escape(text).replace("\n","<br>")
+        link = row["link"] if isinstance(row["link"], str) else ""
         engagement = int(row["engagement"]) if pd.notna(row["engagement"]) else 0
 
-        # Ojo: el primer carácter del bloque es '<' (sin espacios delante)
+        link_html = (
+            f'<a href="{link}" target="_blank" style="text-decoration:none; font-weight:500;">🔗 View tweet</a>'
+            if isinstance(link, str) and link.startswith("http") else ""
+        )
+
         st.markdown(
-f"""<div style="background: var(--panel, #ffffff);
-  border: 1px solid var(--rim, #e5e7eb);
-  border-radius: 16px;
-  padding: 12px 16px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 6px rgba(15,23,42,0.06);">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-    <div style="font-size: 0.9rem; color: var(--muted, #6b7280);">
-      <strong>@{user}</strong>
-      <span style="opacity:.7;"> • {time_str}</span>
-    </div>
-    <div style="font-size:0.85rem; color:var(--muted,#6b7280);">
-      ⭐ {engagement}
-    </div>
-  </div>
-  <div style="font-size: 0.96rem; margin-bottom: 8px;" dir="auto">
-    {text_html}
-  </div>
-  {link_block}
-</div>""",
+            f"""
+            <div style="
+                background: var(--panel, #ffffff);
+                border: 1px solid var(--rim, #e5e7eb);
+                border-radius: 16px;
+                padding: 12px 16px;
+                margin-bottom: 10px;
+                box-shadow: 0 2px 6px rgba(15,23,42,0.06);
+            ">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <div style="font-size: 0.9rem; color: var(--muted, #6b7280);">
+                        <strong>@{user}</strong>
+                        <span style="opacity:.7;"> • {time_str}</span>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--muted,#6b7280);">
+                        ⭐ {engagement}
+                    </div>
+                </div>
+                <div style="font-size: 0.96rem; margin-bottom: 8px;" dir="auto">
+                    {text_html}
+                </div>
+                <div style="font-size: 0.85rem;">
+                    {link_html}
+                </div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -567,28 +546,29 @@ def render_world_map(rm, loc_col):
     st.plotly_chart(fig, use_container_width=True)
 
 # =====================================================================
-# SIDEBAR: DATA + LOAD FULL DATA + FILTRO FECHA
+# SIDEBAR: DATA + DATE FILTER
 # =====================================================================
 st.sidebar.markdown("### Data")
-load_big = st.sidebar.button("🔄 Load full data")
-st.sidebar.caption("CSVs: Posts, Retweets, Replies, Mentions, Quotes")
+st.sidebar.caption("CSVs: Posts, Retweets, Replies, Mentions, Quotes\n\n(All data is loaded automatically)")
 
-# Date range filter
 st.sidebar.subheader("Date Range Filter")
 disable_filter = st.sidebar.checkbox(
-    "Ignore date range (uncheck to filter by dates)",
-    value=True
+    "Ignore date range (uncheck to filter by dates)", value=True
 )
 
-# Fecha mínima: 1 Jan 2025
+# 🔒 Límite inferior: 1 Jan 2025
 min_date = datetime.date(2025, 1, 1)
-
-# Fecha máxima = hoy
 today = datetime.date.today()
 
-# Definimos defaults seguros
-default_end = max(today, min_date)
-default_start = max(default_end - datetime.timedelta(days=7), min_date)
+# Valores por defecto (últimos 7 días, pero nunca antes de min_date)
+default_end = today if today >= min_date else min_date
+default_start = default_end - datetime.timedelta(days=7)
+if default_start < min_date:
+    default_start = min_date
+
+# Si el filtro está desactivado, usamos los defaults sin mostrar inputs
+start_date = default_start
+end_date = default_end
 
 if not disable_filter:
     start_date = st.sidebar.date_input(
@@ -597,17 +577,12 @@ if not disable_filter:
         min_value=min_date,
         max_value=default_end,
     )
-
     end_date = st.sidebar.date_input(
         "End date",
         value=default_end,
         min_value=min_date,
         max_value=today,
     )
-else:
-    start_date = min_date
-    end_date = today
-
 
 def apply_filter(df):
     if df.empty:
@@ -615,28 +590,20 @@ def apply_filter(df):
     df = df.copy()
     df["__time"] = parse_datetime_any(df["__time"])
     if disable_filter:
-        return df
+        # Aunque ignoremos el selector, seguimos cortando a partir de 1 Jan 2025
+        return df[df["__time"] >= pd.Timestamp(min_date)]
     s = pd.Timestamp(start_date).tz_localize(None)
     e = pd.Timestamp(end_date).tz_localize(None)
     return df[(df["__time"] >= s) & (df["__time"] <= e)]
 
 # =====================================================================
-# DATA LOADING (CON LÓGICA LOAD FULL DATA)
+# DATA LOADING (SIEMPRE TODO)
 # =====================================================================
 raw_posts   = safe_load("Posts.csv")
 raw_rts     = safe_load("Retweets.csv")
 raw_quotes  = safe_load("Quotes.csv")
-
-if load_big:
-    raw_replies  = safe_load("Replies.csv")
-    raw_mentions = safe_load("Mentions.csv")
-else:
-    raw_replies  = pd.DataFrame()
-    raw_mentions = pd.DataFrame()
-    st.sidebar.info(
-        "Light mode: Replies and Mentions are not loaded.\n\n"
-        "Click **Load full data** to include them."
-    )
+raw_replies = safe_load("Replies.csv")
+raw_mentions = safe_load("Mentions.csv")
 
 norm_posts    = ensure_valid_time(normalize(raw_posts,   "Posts"))
 norm_rts      = ensure_valid_time(normalize(raw_rts,     "Retweets"))
@@ -705,6 +672,7 @@ with tabs[0]:
 
     if frames:
         trend = pd.concat(frames, ignore_index=True)
+        # Quotes en la base del stack
         cat_order = ["Quotes", "Posts", "Retweets", "Replies", "Mentions"]
         fig = px.area(
             trend,
@@ -830,7 +798,7 @@ with tabs[6]:
                     st.plotly_chart(fig_terms, use_container_width=True)
 
     else:
-        st.info("Add Replies/Mentions to see topics & hashtags (click Load full data if needed).")
+        st.info("Add Replies/Mentions to see topics & hashtags.")
 
     st.markdown("---")
     st.subheader("Top influencers (Replies + Mentions + Retweets)")
@@ -914,7 +882,7 @@ with tabs[6]:
         render_world_map(rm, loc_col)
 
     st.caption(
-        "Tips: use the date filter on the sidebar or disable it to see the full history."
+        "Tips: use the date filter on the sidebar or disable it to see the full history (from Jan 2025)."
     )
 
 # =====================================================================
